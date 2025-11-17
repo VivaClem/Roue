@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roue des gains</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #fdf6f0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+}
+h1 {
+    color: #c23e3e;
+    text-align: center;
+    margin-bottom: 30px;
+}
+button {
+    padding: 15px 25px;
+    margin: 10px;
+    font-size: 18px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    background: linear-gradient(45deg, #f9d6b8, #f28b45);
+    color: #fff;
+    transition: transform 0.2s;
+}
+button:hover { transform: scale(1.05); }
+button:disabled { background: #ccc; cursor: default; }
+#wheelContainer {
+    position: relative;
+    margin-top: 40px;
+    display: none;
+    width: 300px;
+    height: 300px;
+}
+#wheelCanvas {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    transform-origin: center center;
+}
+#arrow {
+    width: 0; 
+    height: 0; 
+    border-left: 20px solid transparent; 
+    border-right: 20px solid transparent; 
+    border-bottom: 40px solid #c23e3e; 
+    position: absolute; 
+    top: -40px; 
+    left: 50%; 
+    transform: translateX(-50%); 
+    z-index: 20;
+}
+#popup {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+}
+#popupContent {
+    background: #fff;
+    padding: 30px;
+    border-radius: 15px;
+    text-align: center;
+    font-size: 20px;
+    max-width: 80%;
+}
+@media(max-width:480px) {
+    #wheelContainer { width: 250px; height: 250px; }
+    button { font-size: 16px; padding: 12px 20px; }
+}
+</style>
+</head>
+<body>
+
+<h1>Gagnez un cadeau !</h1>
+<button id="reviewBtn">Laisser un avis Google</button>
+<button id="spinBtn">Tourner la roue</button>
+
+<div id="wheelContainer">
+    <div id="arrow"></div>
+    <canvas id="wheelCanvas" width="300" height="300"></canvas>
+</div>
+
+<div id="popup">
+    <div id="popupContent"></div>
+</div>
+
+<script>
+const segments = ["10% off", "Rien", "15% off", "Panettone 200g", "Rien"];
+const colors = ["#f28b45","#f9d6b8","#c23e3e","#f9d6b8","#f28b45"];
+let hasSpun = false;
+
+const reviewBtn = document.getElementById("reviewBtn");
+const spinBtn = document.getElementById("spinBtn");
+const wheelContainer = document.getElementById("wheelContainer");
+const wheelCanvas = document.getElementById("wheelCanvas");
+const ctx = wheelCanvas.getContext("2d");
+const popup = document.getElementById("popup");
+const popupContent = document.getElementById("popupContent");
+
+const numSegments = segments.length;
+const anglePerSegment = 2 * Math.PI / numSegments;
+const radius = wheelCanvas.width / 2;
+
+// Vérifier si l'utilisateur a déjà joué
+if(localStorage.getItem("hasSpun")) {
+    spinBtn.disabled = true;
+    spinBtn.innerText = "Vous avez déjà joué";
+}
+
+// Dessiner la roue
+function drawWheel() {
+    ctx.clearRect(0,0,wheelCanvas.width,wheelCanvas.height);
+    for(let i=0;i<numSegments;i++){
+        ctx.beginPath();
+        ctx.moveTo(radius,radius);
+        ctx.arc(radius,radius,radius,i*anglePerSegment,(i+1)*anglePerSegment);
+        ctx.fillStyle = colors[i];
+        ctx.fill();
+        ctx.strokeStyle="#fff"; ctx.lineWidth=2; ctx.stroke();
+
+        ctx.save();
+        ctx.translate(radius,radius);
+        ctx.rotate(i*anglePerSegment + anglePerSegment/2);
+        ctx.textAlign="center";
+        ctx.textBaseline="middle";
+        ctx.fillStyle="#fff";
+        ctx.font="bold 16px Arial";
+        ctx.fillText(segments[i], radius/1.5, 0);
+        ctx.restore();
+    }
+}
+drawWheel();
+
+// Bouton avis Google
+reviewBtn.addEventListener("click", ()=>{
+    window.open("https://www.google.com/search?sca_esv=052283a6d4230c4d&sxsrf=AE3TifNWRwB9kp0Ea3CRld1wRQiulHJp6w:1763412545829&si=AMgyJEtREmoPL4P1I5IDCfuA8gybfVI2d5Uj7QMwYCZHKDZ-E8aGOL1BBD3TXbIFNe2_6NgzL3852t2lJo4JQlyqSmXFUod4ns54tXuytSn6PuMAIvv2eUsbfIe0FAcQzUAGHeC0mJmR&q=Viva+panettone+Avis&sa=X&ved=2ahUKEwiOyovTh_qQAxU9ElkFHdJMOE4Q0bkNegQIJRAE&biw=1920&bih=934&dpr=1#lrd=0x4cc91bd0bdb2f907:0xe8f983f61107ccc4,3,,,,", "_blank");
+});
+
+// Bouton tourner la roue
+spinBtn.addEventListener("click", ()=>{
+    if(hasSpun) return;
+    hasSpun = true;
+    localStorage.setItem("hasSpun", "true"); // Bloque pour la prochaine visite
+    spinBtn.disabled = true;
+    spinBtn.innerText = "Vous avez déjà joué";
+
+    wheelContainer.style.display = "block";
+
+    const randomIndex = Math.floor(Math.random() * numSegments);
+    const degreesPerSegment = 360 / numSegments;
+
+    const arrowAngle = 270; // flèche en haut
+    const targetAngle = (randomIndex * degreesPerSegment) + degreesPerSegment / 2;
+    const baseRotation = 360*5 + (arrowAngle - targetAngle);
+
+    let start = null;
+    const duration = 4000; // spin principal
+    const bounceDuration = 800; // rebond final
+
+    function animate(timestamp){
+        if(!start) start = timestamp;
+        const progress = timestamp - start;
+
+        if(progress < duration){
+            const easeOut = 1 - Math.pow(1 - progress/duration, 3);
+            const currentAngle = baseRotation * easeOut;
+            wheelCanvas.style.transform = `rotate(${currentAngle}deg)`;
+            requestAnimationFrame(animate);
+        } else {
+            // rebond léger
+            const bounceStart = performance.now();
+            function bounceFrame(bounceTime){
+                const t = bounceTime - bounceStart;
+                const bounceAngle = 5 * Math.sin((t / bounceDuration) * Math.PI); // ±5°
+                wheelCanvas.style.transform = `rotate(${baseRotation + bounceAngle}deg)`;
+                if(t < bounceDuration){
+                    requestAnimationFrame(bounceFrame);
+                } else {
+                    wheelCanvas.style.transform = `rotate(${baseRotation}deg)`; // exact
+                    popupContent.innerText = `Félicitations ! Vous avez gagné : ${segments[randomIndex]}`;
+                    popup.style.display = "flex";
+                }
+            }
+            requestAnimationFrame(bounceFrame);
+        }
+    }
+    requestAnimationFrame(animate);
+});
+
+// Fermer popup
+popup.addEventListener("click", ()=>{
+    popup.style.display = "none";
+});
+</script>
+
+</body>
+</html>
